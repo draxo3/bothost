@@ -97,7 +97,7 @@
 
 <script>
   const CLIENT_ID = '1362892302904983642';
-  const REDIRECT_URI = window.location.origin + window.location.pathname;
+  const REDIRECT_URI = 'https://bothost-silk.vercel.app/';
   const DISCORD_API = "https://discord.com/api/v10";
 
   function authorize() {
@@ -123,9 +123,7 @@
   async function fetchGuilds(token) {
     try {
       const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       const guilds = await res.json();
       const select = document.getElementById("server");
@@ -164,10 +162,10 @@
         alert("✅ Message sent!");
       } else {
         const error = await res.json();
-        alert("❌ Failed to send message: " + (error.message || res.status));
+        alert("❌ Failed: " + (error.message || res.status));
       }
     } catch (err) {
-      alert("❌ Error sending message: " + err.message);
+      alert("❌ Error: " + err.message);
     }
   }
 
