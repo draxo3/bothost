@@ -2,31 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Discord Bot Control Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discord Bot Panel</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(to bottom right, #0d1117, #161b22);
       color: white;
       overflow: hidden;
     }
 
-    .snow {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-    }
-
     .container {
       position: relative;
-      z-index: 2;
       max-width: 600px;
       margin: 100px auto;
       padding: 30px;
@@ -34,14 +22,13 @@
       background: rgba(22, 27, 34, 0.6);
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     h1 {
       text-align: center;
-      font-size: 28px;
-      margin-bottom: 20px;
+      font-size: 26px;
+      margin-bottom: 25px;
       background: linear-gradient(to right, #3b82f6, #60a5fa);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -54,10 +41,15 @@
       margin-bottom: 16px;
       border-radius: 12px;
       border: none;
-      background: rgba(255, 255, 255, 0.08);
+      background-color: #1f2937;
       color: white;
       outline: none;
       transition: 0.3s ease;
+    }
+
+    select option {
+      background-color: #1f2937;
+      color: white;
     }
 
     input::placeholder {
@@ -67,133 +59,120 @@
     button {
       background-color: #3b82f6;
       font-weight: 500;
-      transition: 0.3s ease;
     }
 
     button:hover {
       background-color: #2563eb;
       transform: scale(1.02);
     }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <canvas class="snow"></canvas>
-  <div class="container">
-    <h1>❄️ Discord Bot Control Panel ❄️</h1>
 
-    <button onclick="authorize()">Authorize with Discord</button>
+<div class="container">
+  <h1>✨ Discord Bot Panel ✨</h1>
 
-    <div id="auth-section" style="display:none;">
-      <label for="server">Select Server</label>
-      <select id="server"></select>
+  <button onclick="authorize()">Authorize with Discord</button>
 
-      <label for="channelId">Enter Channel ID</label>
-      <input type="text" id="channelId" placeholder="Paste Discord Channel ID..." />
+  <div id="panel" class="hidden">
+    <label for="botToken">Bot Token</label>
+    <input type="text" id="botToken" placeholder="Enter your bot token" />
 
-      <label for="message">Message</label>
-      <input type="text" id="message" placeholder="Type a message..." />
+    <label for="server">Select Server</label>
+    <select id="server"></select>
 
-      <button onclick="sendMessage()">Send Message</button>
-    </div>
+    <label for="channelId">Channel ID</label>
+    <input type="text" id="channelId" placeholder="Enter a Channel ID" />
+
+    <label for="message">Message</label>
+    <input type="text" id="message" placeholder="Type your message here..." />
+
+    <button onclick="sendMessage()">Send Message</button>
   </div>
+</div>
 
-  <script>
-    const CLIENT_ID = '1362892302904983642';
-    const REDIRECT_URI = 'https://bothost-silk.vercel.app/';
-    const API_BASE = "http://localhost:3001/api"; // your backend
+<script>
+  const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // Replace with your app client ID
+  const REDIRECT_URI = window.location.origin + window.location.pathname;
+  const DISCORD_API = "https://discord.com/api/v10";
 
-    function authorize() {
-      const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
-      window.location.href = url;
+  function authorize() {
+    const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify guilds`;
+    window.location.href = url;
+  }
+
+  function parseToken() {
+    const hash = window.location.hash;
+    if (hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.substr(1));
+      const token = params.get("access_token");
+      localStorage.setItem("access_token", token);
+      window.history.replaceState(null, null, REDIRECT_URI);
+      document.getElementById("panel").classList.remove("hidden");
+      fetchGuilds(token);
+    } else if (localStorage.getItem("access_token")) {
+      document.getElementById("panel").classList.remove("hidden");
+      fetchGuilds(localStorage.getItem("access_token"));
     }
+  }
 
-    function parseAccessToken() {
-      const hash = window.location.hash;
-      if (hash.includes("access_token")) {
-        const params = new URLSearchParams(hash.substr(1));
-        const token = params.get("access_token");
-        if (token) {
-          localStorage.setItem("access_token", token);
-          window.history.replaceState(null, null, REDIRECT_URI);
-          document.getElementById("auth-section").style.display = "block";
-          fetchServers(token);
-        }
-      } else if (localStorage.getItem("access_token")) {
-        document.getElementById("auth-section").style.display = "block";
-        fetchServers(localStorage.getItem("access_token"));
-      }
-    }
-
-    async function fetchServers(token) {
-      const res = await fetch("https://discord.com/api/v10/users/@me/guilds", {
+  async function fetchGuilds(token) {
+    try {
+      const res = await fetch(`${DISCORD_API}/users/@me/guilds`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      const servers = await res.json();
+      const guilds = await res.json();
       const select = document.getElementById("server");
       select.innerHTML = "";
-      servers.forEach(guild => {
+      guilds.forEach(guild => {
         const option = document.createElement("option");
         option.value = guild.id;
         option.textContent = guild.name;
         select.appendChild(option);
       });
+    } catch (err) {
+      alert("Failed to fetch servers.");
+    }
+  }
+
+  async function sendMessage() {
+    const botToken = document.getElementById("botToken").value.trim();
+    const channelId = document.getElementById("channelId").value.trim();
+    const message = document.getElementById("message").value;
+
+    if (!botToken || !channelId || !message) {
+      return alert("Please fill in all fields.");
     }
 
-    async function sendMessage() {
-      const channelId = document.getElementById("channelId").value;
-      const message = document.getElementById("message").value;
-      if (!channelId || !message) return alert("Fill all fields");
-
-      const res = await fetch(`${API_BASE}/send`, {
+    try {
+      const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channelId, message })
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bot ${botToken}`
+        },
+        body: JSON.stringify({ content: message })
       });
-      const result = await res.json();
-      alert(result.success ? "Message sent!" : "Failed to send.");
+
+      if (res.ok) {
+        alert("✅ Message sent!");
+      } else {
+        const error = await res.json();
+        alert("❌ Failed to send message: " + (error.message || res.status));
+      }
+    } catch (err) {
+      alert("❌ Error sending message: " + err.message);
     }
+  }
 
-    parseAccessToken();
-  </script>
+  parseToken();
+</script>
 
-  <script>
-    // Snow animation
-    const canvas = document.querySelector(".snow");
-    const ctx = canvas.getContext("2d");
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
-    const flakes = Array.from({ length: 150 }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      r: Math.random() * 4 + 1,
-      d: Math.random() + 1
-    }));
-
-    function drawSnow() {
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "white";
-      ctx.beginPath();
-      flakes.forEach(flake => {
-        ctx.moveTo(flake.x, flake.y);
-        ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2, true);
-      });
-      ctx.fill();
-      moveFlakes();
-    }
-
-    function moveFlakes() {
-      flakes.forEach(flake => {
-        flake.y += flake.d;
-        if (flake.y > height) {
-          flake.y = 0;
-          flake.x = Math.random() * width;
-        }
-      });
-    }
-
-    setInterval(drawSnow, 25);
-  </script>
 </body>
 </html>
