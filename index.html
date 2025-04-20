@@ -5,16 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Discord Bot Control Panel</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(to bottom right, #0d1117, #161b22);
       color: white;
+      overflow: hidden;
     }
 
     .snow {
@@ -30,90 +27,52 @@
     .container {
       position: relative;
       z-index: 2;
-      max-width: 1000px;
-      margin: 60px auto;
+      max-width: 600px;
+      margin: 100px auto;
       padding: 30px;
       border-radius: 20px;
-      background: rgba(22, 27, 34, 0.7);
+      background: rgba(22, 27, 34, 0.6);
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     h1 {
       text-align: center;
-      font-size: 30px;
-      margin-bottom: 30px;
+      font-size: 28px;
+      margin-bottom: 20px;
       background: linear-gradient(to right, #3b82f6, #60a5fa);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    nav {
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 30px;
-    }
-
-    nav button {
-      padding: 10px 20px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      border: none;
-      cursor: pointer;
-      transition: 0.3s ease;
-    }
-
-    nav button:hover, nav button.active {
-      background-color: #3b82f6;
-    }
-
-    .tab {
-      display: none;
-    }
-
-    .tab.active {
-      display: block;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-    }
-
-    input, select, button, textarea {
+    select, input, button {
       width: 100%;
-      padding: 10px;
-      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      margin-bottom: 16px;
+      border-radius: 12px;
       border: none;
       background: rgba(255, 255, 255, 0.08);
       color: white;
       outline: none;
-    }
-
-    button.primary {
-      background-color: #3b82f6;
       transition: 0.3s ease;
     }
 
-    button.primary:hover {
+    input::placeholder {
+      color: #bbb;
+    }
+
+    button {
+      background-color: #3b82f6;
+      font-weight: 500;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
       background-color: #2563eb;
       transform: scale(1.02);
-    }
-
-    .toggle {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .toggle input {
-      margin-right: 10px;
     }
   </style>
 </head>
@@ -121,89 +80,86 @@
   <canvas class="snow"></canvas>
   <div class="container">
     <h1>❄️ Discord Bot Control Panel ❄️</h1>
+
     <button onclick="authorize()">Authorize with Discord</button>
 
-    <nav>
-      <button class="active" onclick="switchTab('custom')">Custom</button>
-      <button onclick="switchTab('automod')">Auto Mod</button>
-      <button onclick="switchTab('commands')">Commands</button>
-      <button onclick="switchTab('plans')">Plans</button>
-    </nav>
+    <div id="auth-section" style="display:none;">
+      <label for="server">Select Server</label>
+      <select id="server"></select>
 
-    <div id="custom" class="tab active">
-      <h2>Custom Permissions</h2>
-      <div id="permissions"></div>
+      <label for="channelId">Enter Channel ID</label>
+      <input type="text" id="channelId" placeholder="Paste Discord Channel ID..." />
 
-      <h3>Send Message to Channel</h3>
-      <select id="custom-channel"></select>
-      <input type="text" id="custom-message" placeholder="Enter message to send...">
-      <button class="primary" onclick="sendCustomMessage()">Send</button>
-    </div>
+      <label for="message">Message</label>
+      <input type="text" id="message" placeholder="Type a message..." />
 
-    <div id="automod" class="tab">
-      <h2>Auto Moderation</h2>
-      <input type="text" id="prefix" placeholder="Prefix (e.g. !help)" />
-      <textarea id="response" placeholder="Custom bot response..."></textarea>
-      <button class="primary" onclick="saveAutoMod()">Save</button>
-    </div>
-
-    <div id="commands" class="tab">
-      <h2>Command List</h2>
-      <p>Coming soon: Manage bot commands here.</p>
-    </div>
-
-    <div id="plans" class="tab">
-      <h2>Plans</h2>
-      <ul>
-        <li><strong>Free Plan:</strong> Basic access, limited AutoMod & Customization</li>
-        <li><strong>Pro Plan:</strong> Unlimited commands, AutoMod, 24/7 hosting</li>
-        <li><strong>Premium Plan:</strong> Everything in Pro + priority support + analytics</li>
-      </ul>
+      <button onclick="sendMessage()">Send Message</button>
     </div>
   </div>
 
   <script>
-    const permissionsList = [
-      'View Channels', 'Send Messages', 'Manage Messages',
-      'Embed Links', 'Attach Files', 'Read Message History',
-      'Mention Everyone', 'Use External Emojis', 'Add Reactions',
-      'Ban Members', 'Kick Members'
-    ];
+    const CLIENT_ID = '1362892302904983642';
+    const REDIRECT_URI = 'https://bothost-silk.vercel.app/';
+    const API_BASE = "http://localhost:3001/api"; // your backend
 
-    function populatePermissions() {
-      const container = document.getElementById('permissions');
-      permissionsList.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'toggle';
-        div.innerHTML = `<input type="checkbox" id="perm-${p}"/><label for="perm-${p}">${p}</label>`;
-        container.appendChild(div);
+    function authorize() {
+      const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
+      window.location.href = url;
+    }
+
+    function parseAccessToken() {
+      const hash = window.location.hash;
+      if (hash.includes("access_token")) {
+        const params = new URLSearchParams(hash.substr(1));
+        const token = params.get("access_token");
+        if (token) {
+          localStorage.setItem("access_token", token);
+          window.history.replaceState(null, null, REDIRECT_URI);
+          document.getElementById("auth-section").style.display = "block";
+          fetchServers(token);
+        }
+      } else if (localStorage.getItem("access_token")) {
+        document.getElementById("auth-section").style.display = "block";
+        fetchServers(localStorage.getItem("access_token"));
+      }
+    }
+
+    async function fetchServers(token) {
+      const res = await fetch("https://discord.com/api/v10/users/@me/guilds", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const servers = await res.json();
+      const select = document.getElementById("server");
+      select.innerHTML = "";
+      servers.forEach(guild => {
+        const option = document.createElement("option");
+        option.value = guild.id;
+        option.textContent = guild.name;
+        select.appendChild(option);
       });
     }
 
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(tabName).classList.add('active');
-      document.querySelector(`nav button[onclick*='${tabName}']`).classList.add('active');
+    async function sendMessage() {
+      const channelId = document.getElementById("channelId").value;
+      const message = document.getElementById("message").value;
+      if (!channelId || !message) return alert("Fill all fields");
+
+      const res = await fetch(`${API_BASE}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId, message })
+      });
+      const result = await res.json();
+      alert(result.success ? "Message sent!" : "Failed to send.");
     }
 
-    function sendCustomMessage() {
-      const channel = document.getElementById('custom-channel').value;
-      const msg = document.getElementById('custom-message').value;
-      if (!channel || !msg) return alert("Fill all fields");
-      alert(`Message sent to ${channel}: ${msg}`); // Replace with real fetch later
-    }
+    parseAccessToken();
+  </script>
 
-    function saveAutoMod() {
-      const prefix = document.getElementById('prefix').value;
-      const response = document.getElementById('response').value;
-      if (!prefix || !response) return alert("Fill both fields");
-      alert(`AutoMod rule saved: ${prefix} → ${response}`); // Replace with real fetch
-    }
-
-    populatePermissions();
-
-    // Snow effect
+  <script>
+    // Snow animation
     const canvas = document.querySelector(".snow");
     const ctx = canvas.getContext("2d");
     let width = canvas.width = window.innerWidth;
@@ -221,9 +177,13 @@
       ctx.beginPath();
       flakes.forEach(flake => {
         ctx.moveTo(flake.x, flake.y);
-        ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
+        ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2, true);
       });
       ctx.fill();
+      moveFlakes();
+    }
+
+    function moveFlakes() {
       flakes.forEach(flake => {
         flake.y += flake.d;
         if (flake.y > height) {
@@ -232,6 +192,7 @@
         }
       });
     }
+
     setInterval(drawSnow, 25);
   </script>
 </body>
