@@ -9,7 +9,7 @@
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0d1117;
+      background: linear-gradient(to bottom right, #0d1117, #161b22);
       color: white;
       overflow: hidden;
     }
@@ -31,34 +31,48 @@
       margin: 100px auto;
       padding: 30px;
       border-radius: 20px;
-      background: #161b22;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      background: rgba(22, 27, 34, 0.6);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     h1 {
       text-align: center;
-      font-size: 32px;
+      font-size: 28px;
       margin-bottom: 20px;
+      background: linear-gradient(to right, #3b82f6, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     select, input, button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin-top: 10px;
-      margin-bottom: 20px;
-      border-radius: 10px;
+      margin-bottom: 16px;
+      border-radius: 12px;
       border: none;
-      background: #0d1117;
+      background: rgba(255, 255, 255, 0.08);
       color: white;
+      outline: none;
+      transition: 0.3s ease;
+    }
+
+    input::placeholder {
+      color: #bbb;
     }
 
     button {
       background-color: #3b82f6;
-      cursor: pointer;
+      font-weight: 500;
+      transition: 0.3s ease;
     }
 
     button:hover {
       background-color: #2563eb;
+      transform: scale(1.02);
     }
   </style>
 </head>
@@ -86,7 +100,7 @@
   <script>
     const CLIENT_ID = '1362892302904983642';
     const REDIRECT_URI = 'https://bothost-silk.vercel.app/';
-    const API_BASE = "http://localhost:3001/api"; // You must change this if backend is hosted elsewhere
+    const API_BASE = "http://localhost:3001/api"; // Change if backend is hosted elsewhere
 
     function authorize() {
       const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
