@@ -66,23 +66,55 @@
   <canvas class="snow"></canvas>
   <div class="container">
     <h1>❄️ Discord Bot Control Panel ❄️</h1>
-    <label for="server">Select Server</label>
-    <select id="server"></select>
 
-    <label for="channel">Select Channel</label>
-    <select id="channel"></select>
+    <button onclick="authorize()">Authorize with Discord</button>
 
-    <label for="message">Message</label>
-    <input type="text" id="message" placeholder="Type a message..." />
+    <div id="auth-section" style="display:none;">
+      <label for="server">Select Server</label>
+      <select id="server"></select>
 
-    <button onclick="sendMessage()">Send Message</button>
+      <label for="channel">Select Channel</label>
+      <select id="channel"></select>
+
+      <label for="message">Message</label>
+      <input type="text" id="message" placeholder="Type a message..." />
+
+      <button onclick="sendMessage()">Send Message</button>
+    </div>
   </div>
 
   <script>
+    const CLIENT_ID = '1362892302904983642';
+    const REDIRECT_URI = window.location.origin + window.location.pathname;
     const API_BASE = "http://localhost:3001/api";
 
-    async function fetchServers() {
-      const res = await fetch(`${API_BASE}/servers`);
+    function authorize() {
+      const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
+      window.location.href = url;
+    }
+
+    function parseAccessToken() {
+      const hash = window.location.hash;
+      if (hash.includes("access_token")) {
+        const params = new URLSearchParams(hash.substr(1));
+        const token = params.get("access_token");
+        if (token) {
+          localStorage.setItem("access_token", token);
+          document.getElementById("auth-section").style.display = "block";
+          fetchServers(token);
+        }
+      } else if (localStorage.getItem("access_token")) {
+        document.getElementById("auth-section").style.display = "block";
+        fetchServers(localStorage.getItem("access_token"));
+      }
+    }
+
+    async function fetchServers(token) {
+      const res = await fetch("https://discord.com/api/v10/users/@me/guilds", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       const servers = await res.json();
       const select = document.getElementById("server");
       servers.forEach(guild => {
@@ -107,7 +139,6 @@
     }
 
     async function sendMessage() {
-      const serverId = document.getElementById("server").value;
       const channelId = document.getElementById("channel").value;
       const message = document.getElementById("message").value;
       if (!channelId || !message) return alert("Fill all fields");
@@ -125,7 +156,7 @@
       fetchChannels(e.target.value);
     });
 
-    fetchServers();
+    parseAccessToken();
   </script>
 
   <script>
