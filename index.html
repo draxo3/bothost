@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discord Bot Control Panel</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d1117;
+      color: white;
+      overflow: hidden;
+    }
+
+    .snow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 600px;
+      margin: 100px auto;
+      padding: 30px;
+      border-radius: 20px;
+      background: #161b22;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      border: none;
+      background: #0d1117;
+      color: white;
+    }
+
+    button {
+      background-color: #3b82f6;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <canvas class="snow"></canvas>
+  <div class="container">
+    <h1>❄️ Discord Bot Control Panel ❄️</h1>
+    <label for="server">Select Server</label>
+    <select id="server"></select>
+
+    <label for="channel">Select Channel</label>
+    <select id="channel"></select>
+
+    <label for="message">Message</label>
+    <input type="text" id="message" placeholder="Type a message..." />
+
+    <button onclick="sendMessage()">Send Message</button>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:3001/api";
+
+    async function fetchServers() {
+      const res = await fetch(`${API_BASE}/servers`);
+      const servers = await res.json();
+      const select = document.getElementById("server");
+      servers.forEach(guild => {
+        const option = document.createElement("option");
+        option.value = guild.id;
+        option.textContent = guild.name;
+        select.appendChild(option);
+      });
+    }
+
+    async function fetchChannels(serverId) {
+      const res = await fetch(`${API_BASE}/channels?server=${serverId}`);
+      const channels = await res.json();
+      const select = document.getElementById("channel");
+      select.innerHTML = "";
+      channels.forEach(channel => {
+        const option = document.createElement("option");
+        option.value = channel.id;
+        option.textContent = channel.name;
+        select.appendChild(option);
+      });
+    }
+
+    async function sendMessage() {
+      const serverId = document.getElementById("server").value;
+      const channelId = document.getElementById("channel").value;
+      const message = document.getElementById("message").value;
+      if (!channelId || !message) return alert("Fill all fields");
+
+      const res = await fetch(`${API_BASE}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId, message })
+      });
+      const result = await res.json();
+      alert(result.success ? "Message sent!" : "Failed to send.");
+    }
+
+    document.getElementById("server").addEventListener("change", (e) => {
+      fetchChannels(e.target.value);
+    });
+
+    fetchServers();
+  </script>
+
+  <script>
+    // Snow animation
+    const canvas = document.querySelector(".snow");
+    const ctx = canvas.getContext("2d");
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    const flakes = Array.from({ length: 150 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      r: Math.random() * 4 + 1,
+      d: Math.random() + 1
+    }));
+
+    function drawSnow() {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      flakes.forEach(flake => {
+        ctx.moveTo(flake.x, flake.y);
+        ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2, true);
+      });
+      ctx.fill();
+      moveFlakes();
+    }
+
+    function moveFlakes() {
+      flakes.forEach(flake => {
+        flake.y += flake.d;
+        if (flake.y > height) {
+          flake.y = 0;
+          flake.x = Math.random() * width;
+        }
+      });
+    }
+
+    setInterval(drawSnow, 25);
+  </script>
+</body>
+</html>
