@@ -85,8 +85,8 @@
 
   <script>
     const CLIENT_ID = '1362892302904983642';
-    const REDIRECT_URI = window.location.origin + window.location.pathname;
-    const API_BASE = "http://localhost:3001/api";
+    const REDIRECT_URI = 'https://bothost-silk.vercel.app/';
+    const API_BASE = "http://localhost:3001/api"; // You must change this if backend is hosted elsewhere
 
     function authorize() {
       const url = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
@@ -100,6 +100,7 @@
         const token = params.get("access_token");
         if (token) {
           localStorage.setItem("access_token", token);
+          window.history.replaceState(null, null, REDIRECT_URI);
           document.getElementById("auth-section").style.display = "block";
           fetchServers(token);
         }
@@ -117,6 +118,7 @@
       });
       const servers = await res.json();
       const select = document.getElementById("server");
+      select.innerHTML = "";
       servers.forEach(guild => {
         const option = document.createElement("option");
         option.value = guild.id;
